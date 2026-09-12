@@ -14,12 +14,17 @@ class UtilityAwarePolicy:
         self.w_load = w_load
         self.current_load = 0.0  # 0-1, updated externally by simulator each step
 
-    def utility_score(self, record: Record, now: float) -> float:
-        # TODO: normalize each term to 0-1 before combining
-        recency_score = 1.0  # placeholder: 1 / (now - record.last_access + eps)
-        frequency_score = 1.0  # placeholder: normalize record.access_count
+    def utility_score(self, record: Record, now: float, buffer: list) -> float:
+        eps = 1e-6
+        recency_raw = 1 / (now - record.last_access + eps)
+        max_recency = max((1 / (now - r.last_access + eps) for r in buffer), default=recency_raw)
+        recency_score = recency_raw / max_recency if max_recency else 0.0
+
+        max_access = max((r.access_count for r in buffer), default=1) or 1
+        frequency_score = record.access_count / max_access
+
         importance_score = record.importance
-        load_penalty = self.current_load  # higher load -> lower tolerance for low-utility records
+        load_penalty = self.current_load
 
         return (
             self.w_recency * recency_score
@@ -29,10 +34,10 @@ class UtilityAwarePolicy:
         )
 
     def on_insert(self, buffer, new_record, capacity):
+        self.current_load = len(buffer) / capacity
         if len(buffer) < capacity:
             return None
-        # evict lowest-utility record
-        scored = [(self.utility_score(r, new_record.timestamp), r) for r in buffer]
+        scored = [(self.utility_score(r, new_record.timestamp, buffer), r) for r in buffer]
         scored.sort(key=lambda x: x[0])
         return scored[0][1]
 
