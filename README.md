@@ -28,4 +28,4 @@ Full methodology, results, and limitations discussion in
 - `results/` — output CSV and plots
 
 ## Authors
-G Joshika, Sneh Dongle — target venue: InC4 2026 / INDIACom-2026
+G Joshika & Sneh Dongle
