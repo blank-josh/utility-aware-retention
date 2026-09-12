@@ -12,17 +12,13 @@ class UtilityAwarePolicy:
         self.w_frequency = w_frequency
         self.w_importance = w_importance
         self.w_load = w_load
-        self.current_load = 0.0  # 0-1, updated externally by simulator each step
+        self.current_load = 0.0
 
-    def utility_score(self, record: Record, now: float, buffer: list) -> float:
+    def utility_score(self, record: Record, now: float, max_recency: float, max_access: int) -> float:
         eps = 1e-6
         recency_raw = 1 / (now - record.last_access + eps)
-        max_recency = max((1 / (now - r.last_access + eps) for r in buffer), default=recency_raw)
         recency_score = recency_raw / max_recency if max_recency else 0.0
-
-        max_access = max((r.access_count for r in buffer), default=1) or 1
-        frequency_score = record.access_count / max_access
-
+        frequency_score = record.access_count / max_access if max_access else 0.0
         importance_score = record.importance
         load_penalty = self.current_load
 
@@ -37,7 +33,13 @@ class UtilityAwarePolicy:
         self.current_load = len(buffer) / capacity
         if len(buffer) < capacity:
             return None
-        scored = [(self.utility_score(r, new_record.timestamp, buffer), r) for r in buffer]
+
+        eps = 1e-6
+        now = new_record.timestamp
+        max_recency = max((1 / (now - r.last_access + eps) for r in buffer), default=1.0)
+        max_access = max((r.access_count for r in buffer), default=1) or 1
+
+        scored = [(self.utility_score(r, now, max_recency, max_access), r) for r in buffer]
         scored.sort(key=lambda x: x[0])
         return scored[0][1]
 
