@@ -18,7 +18,7 @@ def load_telemetry(csv_path: str, value_col: str, id_col: str = None, z_threshol
     for i, row in df.iterrows():
         records.append(Record(
             id=str(row[id_col]) if id_col else str(i),
-            timestamp=float(i),  # replace with real timestamp column if available
+            timestamp=float(row["ts"]) if "ts" in df.columns else float(i),  # replace with real timestamp column if available
             value=float(row[value_col]),
             importance=float(row["importance"]),
         ))

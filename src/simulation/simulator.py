@@ -10,11 +10,13 @@ from src.schema import Record, EvictionPolicy
 def run_simulation(stream: list[Record], policy: EvictionPolicy, capacity: int) -> dict:
     buffer: list[Record] = []
     log = []
+    decision_times = []
 
     for record in stream:
         start = time.perf_counter()
         evict_target = policy.on_insert(buffer, record, capacity)
         elapsed = time.perf_counter() - start
+        decision_times.append(elapsed)
 
         if evict_target is not None:
             buffer.remove(evict_target)
@@ -40,4 +42,5 @@ def run_simulation(stream: list[Record], policy: EvictionPolicy, capacity: int) 
         "capacity": capacity,
         "final_buffer": buffer,
         "log": log,
+        "decision_times": decision_times,
     }
